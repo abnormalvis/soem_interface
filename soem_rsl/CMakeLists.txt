@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 project(soem_rsl C)
 
-find_package(ament_cmake REQUIRED)
+find_package(catkin REQUIRED)
 
 if(WIN32)
   set(OS "win32")
@@ -74,8 +74,13 @@ add_library(soem_rsl STATIC
   ${OSHW_EXTRA_SOURCES})
 target_link_libraries(soem_rsl ${OS_LIBS})
 set_target_properties (soem_rsl PROPERTIES POSITION_INDEPENDENT_CODE ON)
-ament_export_libraries(soem_rsl)
 
+# Set output directory to devel/lib for catkin workspace integration
+set_target_properties(soem_rsl PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../../devel/lib
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../../devel/lib
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../../devel/bin
+)
 
 target_include_directories(soem_rsl PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/soem_rsl/soem_rsl>
@@ -95,25 +100,26 @@ target_include_directories(soem_rsl
 
 message("LIB_DIR: ${soem_rsl_LIB_INSTALL_DIR}")
 
-install(TARGETS soem_rsl  DESTINATION lib)
+# Install library to lib directory (this will be linked to devel/lib by catkin)
+install(TARGETS soem_rsl
+  ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
+  RUNTIME DESTINATION bin
+)
 
-
+# Install headers
 install(FILES
   ${soem_rsl_HEADERS}
   ${OSAL_HEADERS}
   ${OSHW_HEADERS}
-  DESTINATION ${soem_rsl_INCLUDE_INSTALL_DIR}
+  DESTINATION include/${PROJECT_NAME}
 )
 
 install(FILES
   ./soem_rsl/soem_rsl/ethercattype.h
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+  DESTINATION include
 )
 
-ament_export_include_directories(include)
-ament_export_libraries(
-  soem_rsl
-)
 #message(${CMAKE_INSTALL_PREFIX})
 #add_custom_target(link_target ALL
  #                 COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_INSTALL_PREFIX}/include/soem_rsl/ethercattype.h ${CMAKE_INSTALL_PREFIX}/include/ethercattype.h
@@ -125,4 +131,13 @@ if(BUILD_TESTS)
   add_subdirectory(soem_rsl/test/linux/simple_test)
 endif()
 
-ament_package()
+# Export package information for catkin
+catkin_package(
+  INCLUDE_DIRS
+    soem_rsl
+    soem_rsl/soem_rsl
+    soem_rsl/osal
+    soem_rsl/osal/${OS}
+    soem_rsl/oshw/${OS}
+  LIBRARIES soem_rsl
+)
